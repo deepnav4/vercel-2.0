@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 const app = express();
 import { S3 } from 'aws-sdk';
 import fs from 'fs';
@@ -10,6 +11,8 @@ const s3 = new S3({
     secretAccessKey: process.env.SECRET_ACCESS_KEY,
     endpoint: process.env.ENDPOINT,
 })
+
+app.use(cors());
 
 app.use(async (req, res) => {
     const host = req.hostname;

@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 const app = express();
 import simpleGit from 'simple-git';
 import { generate ,getAllFiles} from './utils';
@@ -28,8 +29,9 @@ subscribers.connect().catch(err => {
     console.log('Continuing without Redis...');
 });
 
+app.use(cors());
 app.use(express.json());
-// app.use(cors());
+
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });

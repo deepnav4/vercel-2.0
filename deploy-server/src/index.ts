@@ -34,6 +34,8 @@ async function main() {
         const folder = folderName.element;
         console.log('Starting download for folder:', folder);
         try {
+            publisher.hSet("status",folder,"deploying");
+            console.log('Status set to deploying for folder:', folder);
             await downloadS3Folder(`repos/${folder}`);
             console.log('Download completed for folder:', folder);
             await buildProject(folder);
