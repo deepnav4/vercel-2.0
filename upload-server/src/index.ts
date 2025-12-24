@@ -31,10 +31,16 @@ app.post('/deploy',async (req, res) => {
     try {
         await git.clone(repoUrl, repoPath);
         const files = getAllFiles(repoPath);
-        files.forEach(async file => {
-            const relativePath = path.relative(path.join(__dirname, 'repos'), file).replace(/\\/g, '/');
-            await uploadFile(relativePath, file);
-        })
+        
+        // Wait for all files to upload
+        await Promise.all(
+            files.map(async file => {
+                const relativePath = path.relative(path.join(__dirname, 'repos'), file).replace(/\\/g, '/');
+                await uploadFile(relativePath, file);
+            })
+        );
+        
+        console.log(`All files uploaded for folder: ${folderName}`);
         publisher.lPush('build-queue',folderName);
         res.status(200).send({ message: 'Repository cloned successfully', folderName });
     } catch (error) {
