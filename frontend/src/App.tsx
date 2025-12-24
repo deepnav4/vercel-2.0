@@ -1,11 +1,40 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function App() {
   const [repoUrl, setRepoUrl] = useState('')
   const [deploymentId, setDeploymentId] = useState('')
+  const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    let interval: number | undefined;
+    
+    if (deploymentId && status !== 'deployed') {
+      interval = setInterval(async () => {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_UPLOAD_SERVER_URL}/status?id=${deploymentId}`)
+          const data = await response.json()
+          
+          if (data.status) {
+            setStatus(data.status)
+            
+            if (data.status === 'deployed') {
+              clearInterval(interval)
+              setLoading(false)
+            }
+          }
+        } catch (err) {
+          console.error('Error polling status:', err)
+        }
+      }, 2000) // Poll every 2 seconds
+    }
+
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [deploymentId, status])
 
   const handleDeploy = async () => {
     if (!repoUrl.trim()) {
@@ -16,6 +45,7 @@ function App() {
     setLoading(true)
     setError('')
     setDeploymentId('')
+    setStatus('')
 
     try {
       const response = await fetch(`${import.meta.env.VITE_UPLOAD_SERVER_URL}/deploy`, {
@@ -29,14 +59,28 @@ function App() {
       const data = await response.json()
 
       if (response.ok) {
-        setDeploymentId(data.id)
+        setDeploymentId(data.folderName)
+        setStatus('uploaded')
       } else {
-        setError(data.error || 'Deployment failed')
+        setError(data.message || 'Deployment failed')
+        setLoading(false)
       }
     } catch (err) {
       setError('Failed to connect to server')
-    } finally {
       setLoading(false)
+    }
+  }
+
+  const getStatusDisplay = () => {
+    switch(status) {
+      case 'uploaded':
+        return '📤 Uploading files...'
+      case 'deploying':
+        return '🚀 Building and deploying...'
+      case 'deployed':
+        return '✓ Deployment Complete!'
+      default:
+        return ''
     }
   }
 
@@ -60,18 +104,25 @@ function App() {
 
       {error && <div className="error">{error}</div>}
 
-      {deploymentId && (
-        <div className="success">
-          <h2>✓ Deployment Successful!</h2>
-          <p>Your site is live at:</p>
-          <a 
-            href={`http://${deploymentId}.localhost:3001`}
-            target="_blank" 
-            rel="noopener noreferrer"
-          >
-            {deploymentId}.localhost:3001
-          </a>
-          <p className="id">Deployment ID: {deploymentId}</p>
+      {deploymentId && status && (
+        <div className={status === 'deployed' ? 'success' : 'deploying'}>
+          <h2>{getStatusDisplay()}</h2>
+          
+          {status === 'deployed' ? (
+            <>
+              <p>Your site is live at:</p>
+              <a 
+                href={`http://${deploymentId}.localhost:3001/index.html`}
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                {deploymentId}.localhost:3001/index.html
+              </a>
+              <p className="id">Deployment ID: {deploymentId}</p>
+            </>
+          ) : (
+            <div className="loader"></div>
+          )}
         </div>
       )}
     </div>
