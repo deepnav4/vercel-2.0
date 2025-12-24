@@ -5,6 +5,13 @@ import { generate ,getAllFiles} from './utils';
 import path from 'path';
 import { uploadFile, clearBucket } from './aws';
 import { createClient } from 'redis';
+const subscribers = createClient({
+    socket: {
+        host: '127.0.0.1',
+        port: 6379
+    }
+});
+
 const publisher = createClient({
     socket: {
         host: '127.0.0.1',
@@ -12,6 +19,11 @@ const publisher = createClient({
     }
 });
 publisher.connect().catch(err => {
+    console.log('Redis connection failed:', err.message);
+    console.log('Continuing without Redis...');
+});
+
+subscribers.connect().catch(err => {
     console.log('Redis connection failed:', err.message);
     console.log('Continuing without Redis...');
 });
@@ -42,6 +54,7 @@ app.post('/deploy',async (req, res) => {
         
         console.log(`All files uploaded for folder: ${folderName}`);
         publisher.lPush('build-queue',folderName);
+        publisher.hSet("status",folderName,"uploaded");
         res.status(200).send({ message: 'Repository cloned successfully', folderName });
     } catch (error) {
         res.status(500).send({ message: 'Error cloning repository', error });
@@ -59,6 +72,12 @@ app.post('/remove', async (req, res) => {
     catch (error) {
         res.status(500).send({ message: 'Error removing repository', error });
     }
+});
+
+app.get('/status', async (req, res) => {
+    const id = req.query.id;
+    const response = await subscribers.hGet("status",id as string);
+    res.status(200).send({ status: response });
 });
 
 app.listen(3000);

@@ -2,7 +2,12 @@ import { createClient } from 'redis';
 import { downloadS3Folder } from './aws';
 import { buildProject } from './utils';
 import { copyFinalBuildToS3 } from './utils';
-
+const publisher = createClient({
+socket: {
+        host: '127.0.0.1',
+        port: 6379
+    }
+});
 const subscriber = createClient({
     socket: {
         host: '127.0.0.1',
@@ -11,9 +16,10 @@ const subscriber = createClient({
 });
 
 subscriber.on('error', (err) => console.error('Redis Client Error', err));
-
+publisher.on('error', (err) => console.error('Redis Client Error', err));
 async function main() {
     await subscriber.connect();
+    await publisher.connect();
     console.log('Connected to Redis, waiting for messages...');
     
     // Check if there are existing items in the queue
@@ -33,6 +39,7 @@ async function main() {
             await buildProject(folder);
             console.log('Build completed for folder:', folder);
             await copyFinalBuildToS3(folder);
+            publisher.hSet("status",folder,"deployed");
             console.log('Final build copied to S3 for folder:', folder);
         } catch (error) {
             console.error('Error processing folder:', error);
