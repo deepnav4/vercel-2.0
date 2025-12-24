@@ -1,0 +1,4 @@
+3 env varaibles
+start queue from docker or locally
+docker run -d -p 6379:6379 redis
+docker exec -it f2d7b68f987f redis-cli
