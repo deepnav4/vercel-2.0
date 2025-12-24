@@ -36,7 +36,7 @@ app.post('/deploy',async (req, res) => {
         await Promise.all(
             files.map(async file => {
                 const relativePath = path.relative(path.join(__dirname, 'repos'), file).replace(/\\/g, '/');
-                await uploadFile(relativePath, file);
+                await uploadFile(`repos/${relativePath}`, file);
             })
         );
         

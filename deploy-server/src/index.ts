@@ -1,6 +1,7 @@
 import { createClient } from 'redis';
 import { downloadS3Folder } from './aws';
 import { buildProject } from './utils';
+import { copyFinalBuildToS3 } from './utils';
 
 const subscriber = createClient({
     socket: {
@@ -27,12 +28,14 @@ async function main() {
         const folder = folderName.element;
         console.log('Starting download for folder:', folder);
         try {
-            await downloadS3Folder(folder);
+            await downloadS3Folder(`repos/${folder}`);
             console.log('Download completed for folder:', folder);
             await buildProject(folder);
             console.log('Build completed for folder:', folder);
+            await copyFinalBuildToS3(folder);
+            console.log('Final build copied to S3 for folder:', folder);
         } catch (error) {
-            console.error('Error downloading folder:', error);
+            console.error('Error processing folder:', error);
         }
     }
 }

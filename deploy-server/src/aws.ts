@@ -23,7 +23,9 @@ async function downloadS3Folder(prefix : string){
         const allPromises = allFiles.Contents?.map(async ({Key}) => {
             return new Promise(async (resolve, reject) => {
                 if(!Key) return resolve("");
-                const finalOutputPath = path.join(__dirname, 'repos', Key);
+                // Remove 'repos/' prefix from Key to avoid duplication
+                const relativePath = Key.replace(/^repos\//, '');
+                const finalOutputPath = path.join(__dirname, 'repos', relativePath);
                 const dirName = path.dirname(finalOutputPath);
                 const outputFile = fs.createWriteStream(finalOutputPath);
                 if(!fs.existsSync(dirName)){
